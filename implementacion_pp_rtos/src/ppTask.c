@@ -60,7 +60,12 @@ void ppControlTask( void* taskParmPtr )
 	// pole_placement_init( &PsPPController, -0.38135351f, 0.13f,0.74387057f,0.0f,3.3f);
 	// Control 2
 	// pole_placement_init( &PsPPController, -0.22135351f, 0.1044f,0.88082428f,0.0f,3.3f);
-	pole_placement_init( &PsPPController, -0.02135351f,0.0904f,1.07035843f,0.0f,3.3f);
+	// COntrol 3
+	// pole_placement_init( &PsPPController, -0.02135351f,0.0904f,1.07035843f,0.0f,3.3f);
+	// Control 4
+	// pole_placement_init( &PsPPController, -0.08135351,0.0925f,1.0113582f,0.0f,3.3f);
+	
+	pole_placement_init( &PsPPController, 0.01464649f,0.360004f,1.38176914f,0.0f,3.3f);
 
 	// Peridodic task each h_ms
 	portTickType xPeriodicity =  h_ms / portTICK_RATE_MS;
