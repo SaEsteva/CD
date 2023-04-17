@@ -1,4 +1,4 @@
-/*=====[ppTask]========================================================
+/*=====[obsTask]========================================================
  * Copyright 2023 Santiago Esteva <sestevafi.uba.ar> * All rights reserved.
  * License: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
  *
@@ -8,9 +8,9 @@
 
 /*=====[Inclusion of own header]=============================================*/
 
-#include "../../implementacion_pp_rtos/inc/ppTask.h"
+#include "../../observador_rtos/inc/obsTask.h"
 
-#include "../../implementacion_pp_rtos/inc/pp_controller.h"
+#include "../../observador_rtos/inc/observador.h"
 #include "sapi.h"
 
 /*=====[Definition macros of private constants]==============================*/
@@ -38,12 +38,11 @@ extern float ref;
 // #define COUNT_CYCLES
 
 // Task implementation
-void ppControlTask( void* taskParmPtr )
+void ObservadorTask( void* taskParmPtr )
 {
 	// Controller signals
 	float r = 0.0f; // Measure of reference r[k]
 	float y = 0.0f; // Measure of system output y[k]
-	float y2 = 0.0f; // Measure of first state
 	float u = 0.0f; // Calculated controller's output u[k]
 	// h no puede ser menor ni al tiempo del algoritmo, y con va a ser un
 	// multiplo del periodo de tick del RTOS
@@ -54,13 +53,14 @@ void ppControlTask( void* taskParmPtr )
 	adcInit( ADC_ENABLE );
 	dacInit( DAC_ENABLE );
 
-	PPController_t PsPPController;
-
-	// Inicializo las ganancias del PP
-	// pole_placement_init( &PsPPController, 0.12789971f, 0.13083942f,1.25873913f,0.0f,3.3f);
-
-	// Utilziando el algoritmo LQR
-	pole_placement_init( &PsPPController, 0.21760338f, 0.2226051f,1.44020847f,0.0f,3.3f);
+	Observer_t PsOBS;
+	
+	// Observador
+	Observer_init( &PsOBS, 0.053518125f, 0.0547959087f,1.12777838f,0.017546446767197834f,
+					0.39030722f,0.39927863f,0.39927863f, 0.40845625,
+					0.21041416f,0.19226513f,
+					0.0f,1.0f,
+					0.0f,3.3f);
 
 	// Peridodic task each h_ms
 	portTickType xPeriodicity =  h_ms / portTICK_RATE_MS;
@@ -91,18 +91,17 @@ void ppControlTask( void* taskParmPtr )
 		#else
 			// Leer salida y[k] y el estado y2[k]
 			y = adcRead( CH1 ) * SCALE_Y;
-			y2 = adcRead( CH2 ) * SCALE_Y;
 			r = ref;
 
 			// Calculate PP controller output u[k]
-			u = pole_placement_control(&PsPPController,y2, y, r ) * SCALE_U;
+			u = Observer(&PsOBS, y, r ) * SCALE_U;
 
 			// Actualizar la salida u[k]
 			dacWrite( DAC, u);
 		#endif
 
 		// Update Pole Placement controller for next iteration
-		ppUpdateController( &PsPPController, y2, y, r );
+		obsUpdate( &PsOBS, y, r );
 
 		// printf("%f-%f,",r,u);
 		#ifdef COUNT_CYCLES

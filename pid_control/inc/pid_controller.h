@@ -1,20 +1,20 @@
-/*=====[pp_Task]========================================================
- * Copyright 2023 Santiago Esteva <sestevafi.uba.ar> * All rights reserved.
+/*=====[pid_controller]========================================================
+ * Copyright 2018 Diego Fernandez <dfernandez202@gmail.com>
+ * Copyright 2018 Eric Nicolas Pernia <ericpernia@gmail.com>
+ * All rights reserved.
  * License: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
  *
- * Version: 1.3.0
- * Creation Date: 2023/04/15
- *===========================================================================*/
+ * Version: 1.1.0
+ * Creation Date: 2018/09/24
+ */
 
 /*=====[Avoid multiple inclusion - begin]====================================*/
 
-#ifndef __USER_TASKS_H__
-#define __USER_TASKS_H__
+#ifndef _PID_CONTROLLER_H_
+#define _PID_CONTROLLER_H_
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
-#include "FreeRTOS.h"
-#include "task.h"
 #include "sapi.h"
 
 /*=====[C++ - begin]=========================================================*/
@@ -23,17 +23,28 @@
 extern "C" {
 #endif
 
-/*=====[Definition macros of public constants]===============================*/
-
-/*=====[Public function-like macros]=========================================*/
-
 /*=====[Definitions of public data types]====================================*/
+
+typedef struct {
+   float Kp;
+   float Ki;
+   float Kd;
+   float h;
+   float N;
+   float b;
+} pidConfig_t;
+
+typedef struct {
+   float pastD;
+   float pastY;
+   float futureI;
+} pidState_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
 
-void ppControlTask( void* taskParmPtr );  // Task declaration
+void pidInit( pidConfig_t* config, pidState_t* state );
 
-/*=====[Prototypes (declarations) of public interrupt functions]=============*/
+float pidControl( pidConfig_t* config, pidState_t* state, float y, float r );
 
 /*=====[C++ - end]===========================================================*/
 
@@ -43,4 +54,4 @@ void ppControlTask( void* taskParmPtr );  // Task declaration
 
 /*=====[Avoid multiple inclusion - end]======================================*/
 
-#endif /* __USER_TASKS_H__ */
+#endif /* _PID_CONTROLLER_H_ */

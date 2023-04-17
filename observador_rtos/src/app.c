@@ -8,8 +8,8 @@
 
 /*=====[Inclusions of function dependencies]=================================*/
 
-#include "../../implementacion_pp_rtos/inc/FreeRTOSConfig.h"
-#include "../../implementacion_pp_rtos/inc/ppTask.h"
+#include "../../observador_rtos/inc/FreeRTOSConfig.h"
+#include "../../observador_rtos/inc/obsTask.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -26,7 +26,6 @@
 /*=====[Main function, program entry point after power on or reset]==========*/
 StackType_t myTaskStack[configMINIMAL_STACK_SIZE];
 StaticTask_t myTaskTCB;
-
 
 float ref;
 
@@ -63,8 +62,8 @@ int main( void )
 
    // Create a task in freeRTOS with dynamic memory
    xTaskCreate(
-      ppControlTask,                 // Function that implements the task.
-      (const char *)"ppControlTask", // Text name for the task.
+      ObservadorTask,                 // Function that implements the task.
+      (const char *)"ObsTask", // Text name for the task.
       configMINIMAL_STACK_SIZE*2,     // Stack size in words, not bytes.
       0,                              // Parameter passed into the task.
       tskIDLE_PRIORITY+1,             // Priority at which the task is created.

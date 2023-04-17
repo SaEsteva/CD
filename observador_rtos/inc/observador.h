@@ -1,12 +1,12 @@
-/*=====[pp_controller]========================================================
+/*=====[observador]========================================================
  * Copyright 2023 Santiago Esteva <sestevafi.uba.ar> * All rights reserved.
  * License: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
  *
  * Version: 1.3.0
  * Creation Date: 2023/04/15
  */
-#ifndef _PP_CONTROLLER_H_
-#define _PP_CONTROLLER_H_
+#ifndef _OBSERVER_H_
+#define _OBSERVER_H_
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
@@ -20,11 +20,11 @@ extern "C" {
 
 /*=====[Definition macros of public constants]===============================*/
 
-#define PP_PRINT_RESULT
+#define OBS_PRINT_RESULT
 
 // #define OPEN_LOOP
 
-#ifdef PP_PRINT_RESULT
+#ifdef OBS_PRINT_RESULT
 // Number of samples to save
 #define N_SAMPLES       150
 #define INIT_SAMPLES    28
@@ -39,37 +39,31 @@ extern "C" {
 typedef struct {
 	float K[2];
 	float K0;
+	float L;
+	float A[4];
+	float B[2];
+	float C[2];
    float uMin;
    float uMax;
-} pole_placement_config_t;
+} observer_config_t;
 
 typedef struct {
    float u;
    float u_sat;
-} pole_placement_State_t;
+   float x_hat[2];
+} observer_State_t;
 
-// PID strcuture (object)
 typedef struct {
-   pole_placement_config_t config;
-   pole_placement_State_t state;
-} PPController_t;
+   observer_config_t config;
+   observer_State_t state;
+} Observer_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
 
-// PP Controller Initialization
-void pole_placement_init(PPController_t *pp, float K_2,float K_1,float K0,float uMin, float uMax);
-
-float pole_placement_control(PPController_t *pp, float x_1, float x_2, float reference);
-
-void ppUpdateController(
-   PPController_t* pp, // PID strcuture (object) by reference
-   float y2,              // Measure of process output
-   float y,              // Measure of process output
-   float r               // Measure of process reference
-);
-
-// PID printf object
-void ppPrintf( PPController_t* pp );
+void Observer_init(Observer_t *obs, float K_1, float K_2,float K0,float L,float A_1,float A_2,float A_3,float A_4,float B_1,float B_2,float C_1,float C_2,float uMin, float uMax);
+float Observer(Observer_t *obs, float y, float reference) ;
+void obsUpdate( Observer_t* obs, float y, float r );
+void obsPrintf( Observer_t* obs );
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

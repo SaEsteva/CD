@@ -1,4 +1,4 @@
-/*=====[pp_Task]========================================================
+/*=====[obsTask]========================================================
  * Copyright 2023 Santiago Esteva <sestevafi.uba.ar> * All rights reserved.
  * License: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
  *
@@ -31,7 +31,7 @@ extern "C" {
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
 
-void ppControlTask( void* taskParmPtr );  // Task declaration
+void ObservadorTask( void* taskParmPtr );  // Task declaration
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

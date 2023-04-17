@@ -1,4 +1,4 @@
-/*=====[pp_controller]========================================================
+/*=====[observador]========================================================
  * Copyright 2023 Santiago Esteva <sestevafi.uba.ar> * All rights reserved.
  * License: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
  *
@@ -8,7 +8,7 @@
 
 /*=====[Inclusions of private function dependencies]=========================*/
 
-#include "../../implementacion_pp_rtos/inc/pp_controller.h"
+#include "../../observador_rtos/inc/observador.h"
 
 /*=====[Definition macros of private constants]==============================*/
 
@@ -20,10 +20,11 @@
 
 /*=====[Definitions of private global variables]=============================*/
 
-#ifdef PP_PRINT_RESULT
+#ifdef OBS_PRINT_RESULT
 static float r_array[N_SAMPLES];
 static float y_array[N_SAMPLES];
-static float y2_array[N_SAMPLES];
+static float xh1_array[N_SAMPLES];
+static float xh2_array[N_SAMPLES];
 static float u_array[N_SAMPLES];
 static float usat_array[N_SAMPLES];
 static uint32_t i = 0;
@@ -31,53 +32,71 @@ static uint32_t i = 0;
 
 /*=====[Prototypes (declarations) of private functions]======================*/
 
-#ifdef PP_PRINT_RESULT
-static void ppGatherDebugSamples( PPController_t* pp, float y2, float y, float r );
+#ifdef OBS_PRINT_RESULT
+static void obsGatherDebugSamples( Observer_t* obs, float y, float r );
 #endif
 
 /*=====[Implementations of public functions]=================================*/
 
-void pole_placement_init(PPController_t *pp, float K_1, float K_2,float K0,float uMin, float uMax)
+void Observer_init(Observer_t *obs, float K_1, float K_2,float K0,float L,float A_1,float A_2,float A_3,float A_4,float B_1,float B_2,float C_1,float C_2,float uMin, float uMax)
 {
    // Configuration
-   pp->config.K[0] = K_1;
-	pp->config.K[1] = K_2;
-	pp->config.K0 = K0;
-   pp->config.uMin = uMin;
-   pp->config.uMax = uMax;
+   obs->config.K[0] = K_1;
+	obs->config.K[1] = K_2;
+	obs->config.K0 = K0;
+	obs->config.L = L;
+	obs->config.A[0] = A_1;
+	obs->config.A[1] = A_2;
+	obs->config.A[2] = A_3;
+	obs->config.A[3] = A_4;
+	obs->config.B[0] = B_1;
+	obs->config.B[1] = B_2;
+	obs->config.C[0] = C_1;
+	obs->config.C[1] = C_2;
+   obs->config.uMin = uMin;
+   obs->config.uMax = uMax;
 
    // State
-   pp->state.u = 0.0f;
-   pp->state.u_sat = 0.0f;
+   obs->state.u = 0.0f;
+   obs->state.u_sat = 0.0f;
+   obs->state.x_hat[0] = 0.0f;
+   obs->state.x_hat[1] = 0.0f;
 
-   ppPrintf( pp );
+   obsPrintf( obs );
 }
 
-float pole_placement_control(PPController_t *pp, float x_1, float x_2, float reference) {
-   // u = r*k0-(k1*x1+k2*x2)
-   pp->state.u = (reference * pp->config.K0) - (pp->config.K[0] * x_1 + pp->config.K[1] * x_2);
+float Observer(Observer_t *obs, float y, float reference) {
+   // u = K_o* r −K* x_hat ;
+   // obs->state.u = (reference * obs->config.K0) - (obs->config.K[0] * obs->state.x_hat[0])- (obs->config.K[1] * obs->state.x_hat[1]);
+   obs->state.u = (reference * obs->config.K0) - (obs->config.K[0] * obs->state.x_hat[0]);
 
-   // init u_sat with u
-   pp->state.u_sat = pp->state.u;
+   obs->state.u_sat = obs->state.u;
 
    // Apply saturation of actuator
-   if( pp->state.u < pp->config.uMin ) {
-      pp->state.u_sat = pp->config.uMin;
+   if( obs->state.u < obs->config.uMin ) {
+      obs->state.u_sat = obs->config.uMin;
    }
-   if( pp->state.u > pp->config.uMax ) {
-      pp->state.u_sat = pp->config.uMax;
+   if( obs->state.u > obs->config.uMax ) {
+      obs->state.u_sat = obs->config.uMax;
    }
 
-   return pp->state.u_sat;
+   return obs->state.u_sat;
 }
 
 // Update PID controller for next iteration
-void ppUpdateController( PPController_t* pp, float y2, float y, float r )
+void obsUpdate( Observer_t* obs, float y, float r )
 {
+   float Phi[2];
 
-#ifdef PP_PRINT_RESULT
+   // x_hat = Phi * x_hat + Gamma*u + L * ( y − C* x_hat ) ;
+   Phi[0] = (obs->config.A[0]*obs->state.x_hat[0])+(obs->config.A[1]*obs->state.x_hat[1]);
+   Phi[1] = (obs->config.A[2]*obs->state.x_hat[0])+(obs->config.A[3]*obs->state.x_hat[1]);
+
+   obs->state.x_hat[0] = Phi[0] + obs->config.B[0]*obs->state.u + obs->config.L * ( y - obs->config.C[0]* obs->state.x_hat[0] );
+   obs->state.x_hat[1] = Phi[1]  + obs->config.B[1]*obs->state.u + obs->config.L * ( y - obs->config.C[1]* obs->state.x_hat[1] );
+#ifdef OBS_PRINT_RESULT
    /*----- Print PID results if is activated --------------------------------*/
-   ppGatherDebugSamples (pp, y2, y, r);
+   obsGatherDebugSamples (obs, y, r);
 #endif
 }
 
@@ -104,33 +123,60 @@ void console_print (float* buffer)
    }
 }
 
-// PP printf object
-void ppPrintf( PPController_t* pp )
+// obs printf object
+void obsPrintf( Observer_t* obs )
 {   
    float32_t buffer[1];
-   printf( "Pole Placement structure (object)\r\n" );
+   printf( "Observer structure (object)\r\n" );
    printf( "----------------------\r\n\r\n" );
-   buffer[0] = pp->config.K0;
+   buffer[0] = obs->config.K0;
    printf( "\n\t K0 = " );
    console_print (buffer);
-   buffer[0] = pp->config.K[0];
+   buffer[0] = obs->config.K[0];
    printf( "\n\t  K_1 = ");
    console_print (buffer);
-   buffer[0] = pp->config.K[1];
+   buffer[0] = obs->config.K[1];
    printf( "\n\t  K_2 = ");
    console_print (buffer);
-   buffer[0] = pp->config.uMax;
-   printf( "\n\t  umax = ");
+   buffer[0] = obs->config.L;
+   printf( "\n\t  L = ");
    console_print (buffer);
-   buffer[0] = pp->config.uMin;
+   buffer[0] = obs->config.A[0];
+   printf( "\n\t  A = [");
+   console_print (buffer);
+   printf( " , ");
+   buffer[0] = obs->config.A[1];
+   console_print (buffer);
+   buffer[0] = obs->config.A[2];
+   printf( " , ");
+   console_print (buffer);
+   buffer[0] = obs->config.A[3];
+   printf( " , ");
+   console_print (buffer);
+   buffer[0] = obs->config.B[0];
+   printf( "]\n\t  B = [");
+   console_print (buffer);
+   buffer[0] = obs->config.B[1];
+   printf( " , ");
+   console_print (buffer);
+   buffer[0] = obs->config.C[0];
+   printf( "]\n\t  C = [");
+   console_print (buffer);
+   buffer[0] = obs->config.C[1];
+   printf( " , ");
+   console_print (buffer);
+   buffer[0] = obs->config.uMax;
+   printf( "]\n\t  umax = ");
+   console_print (buffer);
+   buffer[0] = obs->config.uMin;
    printf( "\n\t  umin = ");
    console_print (buffer);
    printf( "\r\n" );
 }
 
 
-#ifdef PP_PRINT_RESULT
-static void ppGatherDebugSamples( PPController_t* pp, float y2, float y, float r )
+#ifdef OBS_PRINT_RESULT
+static void obsGatherDebugSamples( Observer_t* obs, float y, float r )
 {
 	char ntos[64];
 
@@ -140,15 +186,16 @@ static void ppGatherDebugSamples( PPController_t* pp, float y2, float y, float r
          uartWriteString( UART_USB, "\r\n\r\nGathering " );
          uint64ToString( N_SAMPLES, ntos, 10 );
          uartWriteString( UART_USB, ntos );
-         uartWriteString( UART_USB, " PP samples...\r\n\r\n" );
+         uartWriteString( UART_USB, " obs samples...\r\n\r\n" );
       }
 
       // Save N_SAMPLES samples of R[k] and Y[k]
       r_array[i] = r;
       y_array[i] = y;
-      y2_array[i] = y2;
-      u_array[i] = pp->state.u;
-      usat_array[i] = pp->state.u_sat;
+      xh1_array[i] = obs->state.x_hat[0];
+      xh2_array[i] = obs->state.x_hat[1];
+      u_array[i] = obs->state.u;
+      usat_array[i] = obs->state.u_sat;
       i++;
 
    } else {
@@ -175,10 +222,18 @@ static void ppGatherDebugSamples( PPController_t* pp, float y2, float y, float r
       uartWriteString( UART_USB, "]\r\n\r\n" );
 
       #ifndef OPEN_LOOP
-      // print y2[k] samples
-      uartWriteString( UART_USB, "y_2 = [ " );
+      // print x1_hat[k] samples
+      uartWriteString( UART_USB, "x1_hat = [ " );
       for( i=INIT_SAMPLES; i<N_SAMPLES; i++) {
-         uartWriteString( UART_USB, floatToString( y2_array[i], ntos, 5 ) );
+         uartWriteString( UART_USB, floatToString( xh1_array[i], ntos, 5 ) );
+         uartWriteString( UART_USB, "," );
+      }
+      uartWriteString( UART_USB, "]\r\n\r\n" );
+
+      // print x2_hat[k] samples
+      uartWriteString( UART_USB, "x2_hat = [ " );
+      for( i=INIT_SAMPLES; i<N_SAMPLES; i++) {
+         uartWriteString( UART_USB, floatToString( xh2_array[i], ntos, 5 ) );
          uartWriteString( UART_USB, "," );
       }
       uartWriteString( UART_USB, "]\r\n\r\n" );

@@ -278,6 +278,7 @@ static void pidGatherDebugSamples( PIDController_t* pid, float y, float r )
       }
       uartWriteString( UART_USB, "]\r\n\r\n" );
 
+      #ifndef OPEN_LOOP
       // print u[k] samples
       uartWriteString( UART_USB, "u = [ " );
       for( i=INIT_SAMPLES; i<N_SAMPLES; i++) {
@@ -293,6 +294,7 @@ static void pidGatherDebugSamples( PIDController_t* pid, float y, float r )
          uartWriteString( UART_USB, "," );
       }
       uartWriteString( UART_USB, "]\r\n\r\n" );
+      #endif
 
       uartWriteString( UART_USB, "All samples printed. PROGRAM HALTED.\r\n" );
       gpioWrite( LED2, ON );
