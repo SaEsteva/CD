@@ -93,7 +93,8 @@ void obsUpdate( Observer_t* obs, float y, float r )
    Phi[1] = (obs->config.A[2]*obs->state.x_hat[0])+(obs->config.A[3]*obs->state.x_hat[1]);
 
    obs->state.x_hat[0] = Phi[0] + obs->config.B[0]*obs->state.u + obs->config.L * ( y - obs->config.C[0]* obs->state.x_hat[0] );
-   obs->state.x_hat[1] = Phi[1]  + obs->config.B[1]*obs->state.u + obs->config.L * ( y - obs->config.C[1]* obs->state.x_hat[1] );
+   //obs->state.x_hat[1] = Phi[1]  + obs->config.B[1]*obs->state.u + obs->config.L * ( y - obs->config.C[1]* obs->state.x_hat[1] );
+   obs->state.x_hat[1] = y;
 #ifdef OBS_PRINT_RESULT
    /*----- Print PID results if is activated --------------------------------*/
    obsGatherDebugSamples (obs, y, r);
