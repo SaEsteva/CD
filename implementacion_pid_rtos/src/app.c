@@ -15,6 +15,8 @@
 
 #include "sapi.h"
 
+#include "arm_math.h"
+
 /*=====[Definition macros of private constants]==============================*/
 
 /*=====[Definitions of extern global variables]==============================*/
@@ -23,6 +25,10 @@
 
 /*=====[Definitions of private global variables]=============================*/
 #define GENERATOR	GPIO3
+
+#define DAC_REFERENCE_VALUE_HIGH   666  // 1023 = 3.3V, 666 = 2.15V
+#define DAC_REFERENCE_VALUE_LOW    356  // 1023 = 3.3V, 356 = 1.15V
+
 /*=====[Main function, program entry point after power on or reset]==========*/
 StackType_t myTaskStack[configMINIMAL_STACK_SIZE];
 StaticTask_t myTaskTCB;
@@ -45,18 +51,27 @@ void Generator( void* taskParmPtr )
    vTaskDelay( 10 / portTICK_RATE_MS );
    gpioWrite( GENERATOR, OFF );
 
+
+#ifndef IDENT
+   ref = DAC_REFERENCE_VALUE_LOW + rand() % (DAC_REFERENCE_VALUE_HIGH+1 - DAC_REFERENCE_VALUE_LOW);
+#else
    ref = 1.0;
+#endif
    // Tarea periodica cada 500 ms
    portTickType xPeriodicity =  50 / portTICK_RATE_MS;
    portTickType xLastWakeTime = xTaskGetTickCount();
 
    while(TRUE) {
       gpioToggle( GENERATOR );
+#ifndef IDENT
+      ref = DAC_REFERENCE_VALUE_LOW + rand() % (DAC_REFERENCE_VALUE_HIGH+1 - DAC_REFERENCE_VALUE_LOW);
+#else
       if (ref == 1.0){
          ref = 2.0;
       } else{
          ref = 1.0;
       }
+#endif
       // printf("Cambio \n");
       // Envia la tarea al estado bloqueado durante xPeriodicity (delay periodico)
       vTaskDelayUntil( &xLastWakeTime, xPeriodicity );

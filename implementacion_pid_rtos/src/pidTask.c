@@ -92,9 +92,13 @@ void pidControlTask( void* taskParmPtr )
       #ifdef OPEN_LOOP
          // Lazo abierto
          // r = adcRead( CH2 );
-         r = ref / SCALE_R;
-         dacWrite( DAC, r);
-         r = r * SCALE_R;
+		#ifdef IDENT
+				 r = ref;
+		#else
+				 r = ref / SCALE_R;
+		#endif
+		 dacWrite( DAC, r);
+		 r = r * SCALE_R;
          y = adcRead( CH1 ) * SCALE_Y;
       #else
          // Leer salida y[k] y refererencia r[k]

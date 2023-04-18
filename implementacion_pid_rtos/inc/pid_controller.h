@@ -63,12 +63,23 @@ extern "C" {
 
 #define PID_PRINT_RESULT
 
-// #define OPEN_LOOP
+#define OPEN_LOOP
+
+#ifdef OPEN_LOOP
+#define IDENT
+#endif
 
 #ifdef PID_PRINT_RESULT
-// Number of samples to save
-#define N_SAMPLES       150
-#define INIT_SAMPLES    28
+	#ifdef IDENT
+		// Number of samples to save
+		#define N_SAMPLES       391
+		#define INIT_SAMPLES    0
+
+	#else
+		// Number of samples to save
+		#define N_SAMPLES       150
+		#define INIT_SAMPLES    28
+	#endif
 #endif
 
 /*=====[Public function-like macros]=========================================*/
